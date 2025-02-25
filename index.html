@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Weather App providing current weather and hourly forecast">
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet"> 
+    <title>Weather Forecast</title>
+    <style>
+      body {
+        background: linear-gradient(135deg, #4c00ff, #db4787, #5effa1);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-size: 400% 400%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        animation: gradientAnimation 15s ease infinite;
+        }
+
+        #weatherApi-container {
+        background: rgba(255, 255, 255, 0.3);
+        max-width: 400px;
+        width: 90%;
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        text-align: center;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        animation: fadeIn 1s ease-in-out;
+        }
+
+        h2, label, p {
+        color: #333;
+        margin: 8px 0;
+        animation: fadeIn 1.5s ease-in-out;
+      }
+
+      #city {
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid;
+        animation: fadeIn 1.5s ease-in-out;
+      }
+      button {
+        background: rgb(246, 50, 210);
+        color: white;
+        padding: 10px;
+        margin-left: 10px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        margin-top: 20px;
+        width: 120px;
+        font-size: 16px;
+        transition: 0.3s ease;
+        animation: fadeIn 1.5s ease-in-out;
+      }
+
+      button:hover {
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        color: black;
+        transform: scale(1.1);
+      }
+
+      button:active {
+        transform: scale(0.95);
+        background: pink;
+      }
+
+      .error-message {
+        color: white;
+        background:rgb(238, 118, 92);
+        font-weight: bold;
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 5px;
+        border: 2px solid white;
+        display: none;
+      }
+        .error-message.show {
+            display: block;
+            opacity: 1;
+        }
+        #weather-icon {
+        width: 150px;
+        height: 150px;
+        margin: 0 auto;
+        display: none;
+        animation: fadeIn 2s ease-in-out;
+      }
+
+      #hourly-forecast {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+      }
+
+      .hourly-item {
+        width: 60px;
+        text-align: center;
+        font-size: 14px;
+      }
+
+      .hourly-item img {
+        width: 40px;
+        height: 40px;
+      }
+
+        @keyframes gradientAnimation {
+        0% {
+            background-position: 0% 50%;
+        }
+        50% {
+            background-position: 100% 50%;
+        }
+        100% {
+            background-position: 0% 50%;
+        }
+        }
+
+        @keyframes fadeIn {
+        0% {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        }
+
+        @media (max-width: 600px) {
+        #temp-div p {
+            font-size: 48px;
+        }
+
+        button {
+            width: 100%;
+        }
+
+        #hourly-forecast {
+            gap: 10px;
+        }
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="weatherApi-container">
+        <h2>Weather Forecast</h2>
+        <input type="text" id="city" placeholder="Enter city" aria-label="City name input">
+        <button onclick="getWeather()" aria-label="Search for weather">Search</button>
+        <div class="error-message" id="error-message">
+        </div>
+        <img id="weather-icon" alt="Weather icon representing current weather">
+        <div id="temp-div"></div>
+        <div id="weather-info"></div>
+        <div id="hourly-forecast"></div>
+    </div>
+
+    <script>
+        // Main function to fetch weather data and display it
+        function getWeather() {
+            const apiKey = 'bd5e378503939ddaee76f12ad7a97608'; 
+            const city = document.getElementById('city').value.trim();
+            const errorMessage = document.getElementById('error-message');  
+
+            // Reset error message
+            errorMessage.textContent = '';
+            errorMessage.classList.remove('show');
+
+            if (!city) {
+                showError('Please enter a city');
+                return;
+            }
+            // Construct API URLs for current weather and 5-day forecast
+            const currentWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}`;
+            const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}`;
+
+            // Fetch current weather data
+            fetch(currentWeatherUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        showError('City not found. Please check the name and try again.');
+                        return null;
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data) displayWeather(data);
+                })
+                .catch(() => {
+                    showError('Error fetching current weather data.');
+                });
+
+            // Fetch 5-day forecast data
+            fetch(forecastUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        showError('Error fetching hourly forecast. Try again later.');
+                        return null;
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data) displayHourlyForecast(data.list);
+                })
+                .catch(() => {
+                    showError('Something went wrong. Please try again.');
+                });
+        }
+
+        function showError(message) {
+            const errorMessage = document.getElementById('error-message');
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+            setTimeout(() => {
+                errorMessage.classList.remove('show');
+            }, 3000); // Hide after 3 seconds
+        }
+
+        // Function to display current weather information
+        function displayWeather(data) {
+            console.log('Updating weather UI...'); 
+            const tempDivInfo = document.getElementById('temp-div'); 
+            const weatherInfoDiv = document.getElementById('weather-info');
+            const weatherIcon = document.getElementById('weather-icon'); 
+
+            // Clear previous weather details
+            tempDivInfo.innerHTML = '';
+            weatherInfoDiv.innerHTML = '';
+            weatherIcon.style.display = 'none'; 
+
+            // Handle invalid city or error from API
+            if (data.cod === '404') {
+                weatherInfoDiv.innerHTML = `<p>${data.message}</p>`; 
+            } else {
+                // Extract relevant data
+                const cityName = data.name; 
+                const temperature = Math.round(data.main.temp - 273.15); 
+                const description = data.weather[0].description;
+                const iconCode = data.weather[0].icon;
+                const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@4x.png`;
+
+                // Update UI with the weather data
+                tempDivInfo.innerHTML = `<p>${temperature}°C</p>`;
+                weatherInfoDiv.innerHTML = `
+                    <p>${cityName}</p>
+                    <p>${description.charAt(0).toUpperCase() + description.slice(1)}</p> <!-- Capitalize first letter -->
+                `;
+                weatherIcon.src = iconUrl; 
+                weatherIcon.alt = description; 
+                weatherIcon.style.display = 'block';
+            }
+        }
+
+        // Function to display hourly forecast data
+        function displayHourlyForecast(hourlyData) {
+            console.log('Updating hourly forecast UI...'); 
+
+            const hourlyForecastDiv = document.getElementById('hourly-forecast'); 
+            hourlyForecastDiv.innerHTML = ''; 
+
+            const next24Hours = hourlyData.slice(0, 8);
+
+            // Loop through hourly data and construct the forecast UI
+            next24Hours.forEach(item => {
+                const dateTime = new Date(item.dt * 1000); 
+                const hour = dateTime.getHours().toString().padStart(2, '0'); 
+                const temperature = Math.round(item.main.temp - 273.15); 
+                const iconCode = item.weather[0].icon; // Icon code
+                const iconUrl = `https://openweathermap.org/img/wn/${iconCode}.png`; 
+                // Construct HTML for each hourly item
+                const hourlyItemHtml = `
+                    <div class="hourly-item">
+                        <span>${hour}:00</span> <!-- Display hour -->
+                        <img src="${iconUrl}" alt="Weather Icon for ${hour}:00"> 
+                        <span>${temperature}°C</span> 
+                    </div>
+                `;
+
+                hourlyForecastDiv.innerHTML += hourlyItemHtml;
+            });
+        }
+
+        document.getElementById("city").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                getWeather();
+            }
+        });
+
+        // Function to clear the input field
+        function clearInput() {
+            document.getElementById("city").value = "";
+        }
+
+    </script>
+</body>
+</html>
